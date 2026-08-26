@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "testproject1 — Statisches Hosting auf GitHub Pages",
+  title: "testproject1 — Hello World",
   description:
     "Referenzprojekt von More BrAIns: ein Next.js Static Export, ausgeliefert über GitHub Pages.",
 };
