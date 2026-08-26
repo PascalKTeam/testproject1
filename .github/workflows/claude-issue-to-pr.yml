@@ -1,0 +1,104 @@
+# Turns a GitHub issue into a pull request, using Claude Code running in this
+# repo's own CI. Dispatched by the "Claude PR erstellen" button on the
+# Änderungen tab of the More BrAIns admin backend (dispatchChangeRequestPr in
+# src/app/admin/actions.ts) — the filename is the contract, so keep it.
+#
+# Every customer repo that wants the button needs its own copy of this file on
+# its DEFAULT branch (GitHub only offers workflow_dispatch from there) plus an
+# ANTHROPIC_API_KEY secret. An org-level Actions secret covers the key once for
+# all of them.
+#
+# Also worth knowing: the action refuses to run for a bot actor, and the actor
+# of a dispatch is whoever owns GITHUB_PROVISIONING_TOKEN. A fine-grained PAT
+# owned by a person works; a GitHub App installation token is a bot and needs
+# that app's slug added to allowed_bots below.
+name: Issue to PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue to implement
+        required: true
+        type: string
+      change_request_id:
+        description: Change request this belongs to, for the callback
+        required: false
+        type: string
+      callback_url:
+        description: POST the finished PR here (the portal's /api/agent/change-request-pr)
+        required: false
+        type: string
+
+# One run per issue. cancel-in-progress would abandon a half-pushed branch, so
+# a second dispatch queues behind the first instead.
+concurrency:
+  group: issue-to-pr-${{ inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  develop:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Implement the issue
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # The branch name is fixed so the next step can find the PR without
+          # guessing — claude-code-action doesn't report the PR it opened.
+          prompt: |
+            Implement GitHub issue #${{ inputs.issue_number }} in this repository.
+
+            Read the issue first — its body is the customer's own description
+            of the change and is the whole brief. Follow any CLAUDE.md or
+            AGENTS.md in the repo.
+
+            Work on a branch named exactly `claude/issue-${{ inputs.issue_number }}`,
+            then open a pull request from it whose body contains "Closes
+            #${{ inputs.issue_number }}". Keep the change to what the issue
+            asks for.
+
+            If the issue is too ambiguous to implement, do not invent a
+            solution: open no PR, and comment on the issue saying precisely
+            what you need decided.
+          claude_args: |
+            --max-turns 30
+
+      # Deliberately a separate step rather than something Claude does: the
+      # callback carries AGENT_CALLBACK_SECRET, and this keeps that secret out
+      # of the model's context entirely. Skipped when the portal didn't pass a
+      # callback (a manual run from the Actions tab), and `|| true` on the POST
+      # keeps a portal outage from failing a run whose PR is already open.
+      - name: Report the PR back to the portal
+        if: ${{ inputs.callback_url != '' && inputs.change_request_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CALLBACK_SECRET: ${{ secrets.AGENT_CALLBACK_SECRET }}
+        run: |
+          set -euo pipefail
+          branch="claude/issue-${{ inputs.issue_number }}"
+          pr=$(gh pr list --head "$branch" --state open --limit 1 --json url,number)
+          if [ "$(printf '%s' "$pr" | jq 'length')" -eq 0 ]; then
+            echo "No open PR on $branch — Claude opened none. Nothing to report."
+            exit 0
+          fi
+          if [ -z "${CALLBACK_SECRET:-}" ]; then
+            echo "AGENT_CALLBACK_SECRET is not set on this repo — skipping the callback."
+            echo "PR: $(printf '%s' "$pr" | jq -r '.[0].url')"
+            exit 0
+          fi
+          printf '%s' "$pr" | jq \
+            --arg id "${{ inputs.change_request_id }}" \
+            '{changeRequestId: $id, prUrl: .[0].url, prNumber: .[0].number}' > payload.json
+          curl -sS -X POST "${{ inputs.callback_url }}" \
+            -H "Authorization: Bearer $CALLBACK_SECRET" \
+            -H "Content-Type: application/json" \
+            --data @payload.json || true
