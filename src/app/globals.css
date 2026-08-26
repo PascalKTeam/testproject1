@@ -1,0 +1,146 @@
+:root {
+  --bg: #0b1020;
+  --panel: #131a30;
+  --border: #263252;
+  --text: #e8ecf8;
+  --muted: #97a3c4;
+  --accent: #6ea8fe;
+  --ok: #4ade80;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 46rem;
+  /* The horizontal padding is what keeps this readable at 390px. */
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+}
+
+h1 {
+  /* clamp() rather than a breakpoint: one rule covers 390px through desktop. */
+  font-size: clamp(1.75rem, 7vw, 2.75rem);
+  line-height: 1.15;
+  margin: 1.25rem 0 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  color: var(--muted);
+  font-size: clamp(1rem, 4vw, 1.125rem);
+  margin: 0 0 2.5rem;
+}
+
+h2 {
+  font-size: 1.125rem;
+  margin: 2.5rem 0 0.75rem;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+}
+
+ul.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+ul.checks li {
+  display: grid;
+  grid-template-columns: 1.25rem 1fr;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+}
+
+ul.checks li + li {
+  border-top: 1px solid var(--border);
+}
+
+.tick {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+dl.facts {
+  margin: 0;
+}
+
+dl.facts div {
+  padding: 0.6rem 0;
+}
+
+dl.facts div + div {
+  border-top: 1px solid var(--border);
+}
+
+dl.facts dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+dl.facts dd {
+  margin: 0.15rem 0 0;
+  /* Long URLs and paths must not push the page into horizontal scroll. */
+  overflow-wrap: anywhere;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  background: #0a0f1f;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 0.1rem 0.35rem;
+}
+
+.caveat {
+  border-left: 3px solid #f0b429;
+  padding-left: 0.875rem;
+  color: var(--muted);
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+a {
+  color: var(--accent);
+}
